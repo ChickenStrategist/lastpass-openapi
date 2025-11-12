@@ -1,0 +1,366 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LastPass SCIM 2.0",
+    "version": "v2-curated",
+    "description": "SCIM 2.0 endpoints for provisioning LastPass users and groups. Auth via Bearer token."
+  },
+  "servers": [
+    { "url": "https://provisioning.lastpass.com/scim/v2" }
+  ],
+  "security": [{ "BearerAuth": [] }],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque"
+      }
+    },
+    "schemas": {
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "resourceType": { "type": "string" },
+          "created": { "type": "string", "format": "date-time" },
+          "lastModified": { "type": "string", "format": "date-time" },
+          "location": { "type": "string" },
+          "version": { "type": "string" }
+        }
+      },
+      "Name": {
+        "type": "object",
+        "properties": {
+          "formatted": { "type": "string" },
+          "familyName": { "type": "string" },
+          "givenName": { "type": "string" },
+          "middleName": { "type": "string" }
+        }
+      },
+      "Email": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "string", "format": "email" },
+          "type": { "type": "string", "example": "work" },
+          "primary": { "type": "boolean" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": ["userName"],
+        "properties": {
+          "schemas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["urn:ietf:params:scim:schemas:core:2.0:User"]
+          },
+          "id": { "type": "string" },
+          "externalId": { "type": "string" },
+          "userName": { "type": "string", "description": "Email address used for LastPass" },
+          "name": { "$ref": "#/components/schemas/Name" },
+          "displayName": { "type": "string" },
+          "active": { "type": "boolean", "default": true },
+          "emails": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Email" }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": { "type": "string" },
+                "display": { "type": "string" }
+              }
+            }
+          },
+          "meta": { "$ref": "#/components/schemas/Meta" }
+        }
+      },
+      "GroupMember": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "string" },
+          "display": { "type": "string" }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "required": ["displayName"],
+        "properties": {
+          "schemas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["urn:ietf:params:scim:schemas:core:2.0:Group"]
+          },
+          "id": { "type": "string" },
+          "externalId": { "type": "string" },
+          "displayName": { "type": "string" },
+          "members": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/GroupMember" }
+          },
+          "meta": { "$ref": "#/components/schemas/Meta" }
+        }
+      },
+      "ListResponse": {
+        "type": "object",
+        "properties": {
+          "totalResults": { "type": "integer" },
+          "itemsPerPage": { "type": "integer" },
+          "startIndex": { "type": "integer" },
+          "Resources": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "schemas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "schemas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["urn:ietf:params:scim:api:messages:2.0:Error"]
+          },
+          "status": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      },
+      "PatchOp": {
+        "type": "object",
+        "required": ["op", "path"],
+        "properties": {
+          "op": { "type": "string", "enum": ["add", "remove", "replace"] },
+          "path": { "type": "string" },
+          "value": {}
+        }
+      },
+      "PatchRequest": {
+        "type": "object",
+        "properties": {
+          "schemas": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
+          },
+          "Operations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PatchOp" }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "startIndex": { "name": "startIndex", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+      "count": { "name": "count", "in": "query", "schema": { "type": "integer", "minimum": 0, "maximum": 200, "default": 50 } },
+      "filter": { "name": "filter", "in": "query", "schema": { "type": "string" }, "description": "SCIM filter, e.g. userName eq \"user@example.com\"" }
+    }
+  },
+  "paths": {
+    "/ServiceProviderConfig": {
+      "get": {
+        "operationId": "getServiceProviderConfig",
+        "summary": "SCIM service provider configuration",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/scim+json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/Schemas": {
+      "get": {
+        "operationId": "listSchemas",
+        "summary": "List SCIM schemas",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/scim+json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/ResourceTypes": {
+      "get": {
+        "operationId": "listResourceTypes",
+        "summary": "List SCIM resource types",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/scim+json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+
+    "/Users": {
+      "get": {
+        "operationId": "listUsers",
+        "summary": "List users",
+        "parameters": [
+          { "$ref": "#/components/parameters/startIndex" },
+          { "$ref": "#/components/parameters/count" },
+          { "$ref": "#/components/parameters/filter" }
+        ],
+        "responses": {
+          "200": { "description": "List response", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/ListResponse" } } } }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "summary": "Create user",
+        "requestBody": {
+          "required": true,
+          "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/User" } } }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/User" } } } }
+        }
+      }
+    },
+    "/Users/.search": {
+      "post": {
+        "operationId": "searchUsers",
+        "summary": "Search users (POST)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/scim+json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": { "type": "string" },
+                  "startIndex": { "type": "integer", "default": 1 },
+                  "count": { "type": "integer", "default": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "List response", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/ListResponse" } } } }
+        }
+      }
+    },
+    "/Users/{id}": {
+      "get": {
+        "operationId": "getUser",
+        "summary": "Get user by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "User", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/User" } } } }
+        }
+      },
+      "put": {
+        "operationId": "replaceUser",
+        "summary": "Replace user (PUT)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/User" } } }
+        },
+        "responses": { "200": { "description": "Replaced" } }
+      },
+      "patch": {
+        "operationId": "patchUser",
+        "summary": "Patch user (RFC7644)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/PatchRequest" } } }
+        },
+        "responses": { "200": { "description": "Patched" } }
+      },
+      "delete": {
+        "operationId": "deleteUser",
+        "summary": "Delete (deprovision) user",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+
+    "/Groups": {
+      "get": {
+        "operationId": "listGroups",
+        "summary": "List groups",
+        "parameters": [
+          { "$ref": "#/components/parameters/startIndex" },
+          { "$ref": "#/components/parameters/count" },
+          { "$ref": "#/components/parameters/filter" }
+        ],
+        "responses": {
+          "200": { "description": "List response", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/ListResponse" } } } }
+        }
+      },
+      "post": {
+        "operationId": "createGroup",
+        "summary": "Create group",
+        "requestBody": {
+          "required": true,
+          "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/Group" } } }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/Group" } } } }
+        }
+      }
+    },
+    "/Groups/.search": {
+      "post": {
+        "operationId": "searchGroups",
+        "summary": "Search groups (POST)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/scim+json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": { "type": "string" },
+                  "startIndex": { "type": "integer", "default": 1 },
+                  "count": { "type": "integer", "default": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "List response", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/ListResponse" } } } }
+        }
+      }
+    },
+    "/Groups/{id}": {
+      "get": {
+        "operationId": "getGroup",
+        "summary": "Get group by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Group", "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/Group" } } } }
+        }
+      },
+      "put": {
+        "operationId": "replaceGroup",
+        "summary": "Replace group (PUT)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/Group" } } }
+        },
+        "responses": { "200": { "description": "Replaced" } }
+      },
+      "patch": {
+        "operationId": "patchGroup",
+        "summary": "Patch group members or attributes",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/scim+json": { "schema": { "$ref": "#/components/schemas/PatchRequest" } } }
+        },
+        "responses": { "200": { "description": "Patched" } }
+      },
+      "delete": {
+        "operationId": "deleteGroup",
+        "summary": "Delete group",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    }
+  }
+}
